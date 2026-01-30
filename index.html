@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chief of Staff Pipeline Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c5282 0%, #2d3748 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .pipeline-health {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .health-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            border-left: 4px solid #3182ce;
+        }
+
+        .health-card.warning {
+            border-left-color: #ed8936;
+        }
+
+        .health-card.critical {
+            border-left-color: #e53e3e;
+        }
+
+        .health-card.good {
+            border-left-color: #48bb78;
+        }
+
+        .health-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #718096;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .health-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1a202c;
+        }
+
+        .health-subtext {
+            font-size: 0.875rem;
+            color: #718096;
+            margin-top: 0.5rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f7fafc;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3182ce;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2c5282;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        /* Pipeline Funnel */
+        .pipeline-funnel {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .funnel-stage {
+            position: relative;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(90deg, #e6fffa 0%, #b2f5ea 100%);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid #38b2ac;
+        }
+
+        .funnel-stage:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(56, 178, 172, 0.2);
+        }
+
+        .funnel-stage.stage-2 {
+            background: linear-gradient(90deg, #e6fffa 0%, #81e6d9 100%);
+            border-left-color: #319795;
+            width: 90%;
+        }
+
+        .funnel-stage.stage-3 {
+            background: linear-gradient(90deg, #bee3f8 0%, #90cdf4 100%);
+            border-left-color: #3182ce;
+            width: 75%;
+        }
+
+        .funnel-stage.stage-4 {
+            background: linear-gradient(90deg, #c3dafe 0%, #a3bffa 100%);
+            border-left-color: #5a67d8;
+            width: 55%;
+        }
+
+        .funnel-stage.stage-5 {
+            background: linear-gradient(90deg, #d6bcfa 0%, #b794f4 100%);
+            border-left-color: #805ad5;
+            width: 35%;
+        }
+
+        .funnel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .funnel-stage-name {
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .funnel-count {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1a202c;
+        }
+
+        .funnel-metrics {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.75rem;
+            color: #4a5568;
+        }
+
+        /* Candidate Cards */
+        .candidate-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .candidate-card {
+            display: flex;
+            align-items: flex-start;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .candidate-card:hover {
+            border-color: #3182ce;
+            box-shadow: 0 2px 8px rgba(49, 130, 206, 0.1);
+        }
+
+        .candidate-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .candidate-info {
+            flex: 1;
+        }
+
+        .candidate-name {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+        }
+
+        .candidate-title {
+            color: #718096;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .candidate-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .tag {
+            padding: 0.25rem 0.5rem;
+            background: #edf2f7;
+            color: #4a5568;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .tag.source {
+            background: #bee3f8;
+            color: #2c5282;
+        }
+
+        .tag.skill {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .candidate-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: #718096;
+        }
+
+        .candidate-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        /* Source Breakdown */
+        .source-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .source-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 3px solid #3182ce;
+        }
+
+        .source-info {
+            flex: 1;
+        }
+
+        .source-name {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+        }
+
+        .source-stats {
+            font-size: 0.75rem;
+            color: #718096;
+        }
+
+        .source-count {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #3182ce;
+        }
+
+        /* Nurture Activities */
+        .activity-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: #f7fafc;
+            border-radius: 6px;
+            border-left: 3px solid #48bb78;
+        }
+
+        .activity-item.overdue {
+            border-left-color: #e53e3e;
+        }
+
+        .activity-item.upcoming {
+            border-left-color: #ed8936;
+        }
+
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            background: #48bb78;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+
+        .activity-item.overdue .activity-icon {
+            background: #e53e3e;
+        }
+
+        .activity-item.upcoming .activity-icon {
+            background: #ed8936;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        .activity-details {
+            font-size: 0.75rem;
+            color: #718096;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            color: #718096;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .tab.active {
+            color: #3182ce;
+            border-bottom-color: #3182ce;
+            font-weight: 600;
+        }
+
+        /* Search and Filters */
+        .search-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3182ce;
+        }
+
+        .filter-select {
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .pipeline-health {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .funnel-stage {
+                width: 100% !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Chief of Staff Pipeline Dashboard</h1>
+        <p>Building a sustainable talent pipeline for executive leadership roles</p>
+    </div>
+
+    <div class="container">
+        <!-- Pipeline Health Metrics -->
+        <div class="pipeline-health">
+            <div class="health-card good">
+                <div class="health-label">Pipeline Health</div>
+                <div class="health-value">87%</div>
+                <div class="health-subtext">▲ 5% from last month</div>
+            </div>
+            <div class="health-card good">
+                <div class="health-label">Interview Ready</div>
+                <div class="health-value">12</div>
+                <div class="health-subtext">Target: 8-12 candidates</div>
+            </div>
+            <div class="health-card warning">
+                <div class="health-label">Avg Time to Fill</div>
+                <div class="health-value">45d</div>
+                <div class="health-subtext">Industry avg: 60 days</div>
+            </div>
+            <div class="health-card good">
+                <div class="health-label">Conversion Rate</div>
+                <div class="health-value">28%</div>
+                <div class="health-subtext">Engaged → Qualified</div>
+            </div>
+            <div class="health-card">
+                <div class="health-label">Active Placements</div>
+                <div class="health-value">3</div>
+                <div class="health-subtext">In final negotiations</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Pipeline Funnel -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Pipeline Funnel</h2>
+                    <button class="btn btn-primary" onclick="alert('Add new prospect')">+ Add Prospect</button>
+                </div>
+
+                <div class="pipeline-funnel">
+                    <div class="funnel-stage stage-1" onclick="showStage('prospecting')">
+                        <div class="funnel-header">
+                            <span class="funnel-stage-name">1. Prospecting</span>
+                            <span class="funnel-count">142</span>
+                        </div>
+                        <div class="funnel-metrics">
+                            <span>📊 +18 this week</span>
+                            <span>📈 65% from LinkedIn</span>
+                            <span>⏱️ Avg age: 12 days</span>
+                        </div>
+                    </div>
+
+                    <div class="funnel-stage stage-2" onclick="showStage('engaged')">
+                        <div class="funnel-header">
+                            <span class="funnel-stage-name">2. Engaged</span>
+                            <span class="funnel-count">48</span>
+                        </div>
+                        <div class="funnel-metrics">
+                            <span>💬 34% response rate</span>
+                            <span>✅ 12 need follow-up</span>
+                            <span>⏱️ Avg age: 8 days</span>
+                        </div>
+                    </div>
+
+                    <div class="funnel-stage stage-3" onclick="showStage('qualified')">
+                        <div class="funnel-header">
+                            <span class="funnel-stage-name">3. Qualified</span>
+                            <span class="funnel-count">22</span>
+                        </div>
+                        <div class="funnel-metrics">
+                            <span>🎯 18 C-suite exposure</span>
+                            <span>📚 14 consulting background</span>
+                            <span>⏱️ Avg age: 15 days</span>
+                        </div>
+                    </div>
+
+                    <div class="funnel-stage stage-4" onclick="showStage('ready')">
+                        <div class="funnel-header">
+                            <span class="funnel-stage-name">4. Interview Ready</span>
+                            <span class="funnel-count">12</span>
+                        </div>
+                        <div class="funnel-metrics">
+                            <span>✅ Screened & prepped</span>
+                            <span>📄 Resumes polished</span>
+                            <span>⏱️ Avg age: 22 days</span>
+                        </div>
+                    </div>
+
+                    <div class="funnel-stage stage-5" onclick="showStage('active')">
+                        <div class="funnel-header">
+                            <span class="funnel-stage-name">5. Active Interviews</span>
+                            <span class="funnel-count">5</span>
+                        </div>
+                        <div class="funnel-metrics">
+                            <span>🤝 2 at final round</span>
+                            <span>💼 3 first/second round</span>
+                            <span>⏱️ Avg age: 35 days</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nurture Activities -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Upcoming Nurture Tasks</h2>
+                </div>
+
+                <div class="activity-timeline">
+                    <div class="activity-item overdue">
+                        <div class="activity-icon">!</div>
+                        <div class="activity-content">
+                            <div class="activity-title">Quarterly Check-in Overdue</div>
+                            <div class="activity-details">8 candidates need Q1 check-in call</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item upcoming">
+                        <div class="activity-icon">📧</div>
+                        <div class="activity-content">
+                            <div class="activity-title">Send Monthly Newsletter</div>
+                            <div class="activity-details">Due Feb 1 • 142 recipients</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item">
+                        <div class="activity-icon">🎯</div>
+                        <div class="activity-content">
+                            <div class="activity-title">CoS Roundtable Event</div>
+                            <div class="activity-details">Feb 15 • 25 RSVPs so far</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item">
+                        <div class="activity-icon">📝</div>
+                        <div class="activity-content">
+                            <div class="activity-title">Publish Blog Post</div>
+                            <div class="activity-details">"Career Path to Chief of Staff"</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item">
+                        <div class="activity-icon">💬</div>
+                        <div class="activity-content">
+                            <div class="activity-title">LinkedIn Engagement</div>
+                            <div class="activity-details">Comment on 18 new prospects' posts</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item">
+                        <div class="activity-icon">📞</div>
+                        <div class="activity-content">
+                            <div class="activity-title">Referral Follow-ups</div>
+                            <div class="activity-details">6 candidates referred by network</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="alert('View all tasks')">View All Nurture Tasks</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interview Ready Candidates -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Interview Ready Candidates</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" onclick="alert('Export list')">📤 Export</button>
+                    <button class="btn btn-primary" onclick="alert('Match to role')">🎯 Match to Role</button>
+                </div>
+            </div>
+
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Search candidates...">
+                <select class="filter-select">
+                    <option>All Industries</option>
+                    <option>Tech</option>
+                    <option>Healthcare</option>
+                    <option>Finance</option>
+                    <option>Retail</option>
+                </select>
+                <select class="filter-select">
+                    <option>All Backgrounds</option>
+                    <option>Consulting</option>
+                    <option>Banking</option>
+                    <option>Operations</option>
+                    <option>Strategy</option>
+                </select>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active">Interview Ready (12)</div>
+                <div class="tab">Qualified (22)</div>
+                <div class="tab">Engaged (48)</div>
+            </div>
+
+            <div class="candidate-list">
+                <div class="candidate-card">
+                    <div class="candidate-avatar">AK</div>
+                    <div class="candidate-info">
+                        <div class="candidate-name">Alexandra Kim</div>
+                        <div class="candidate-title">Senior Strategy Manager at McKinsey</div>
+                        <div class="candidate-tags">
+                            <span class="tag source">LinkedIn Outreach</span>
+                            <span class="tag skill">Consulting</span>
+                            <span class="tag skill">Healthcare</span>
+                        </div>
+                        <div class="candidate-meta">
+                            <span>📍 San Francisco</span>
+                            <span>💼 8 yrs exp</span>
+                            <span>🎓 Harvard MBA</span>
+                            <span>📅 Last contact: 2 days ago</span>
+                        </div>
+                    </div>
+                    <div class="candidate-actions">
+                        <button class="btn btn-primary action-btn">Present to Client</button>
+                        <button class="btn btn-secondary action-btn">View Profile</button>
+                    </div>
+                </div>
+
+                <div class="candidate-card">
+                    <div class="candidate-avatar">MR</div>
+                    <div class="candidate-info">
+                        <div class="candidate-name">Marcus Rodriguez</div>
+                        <div class="candidate-title">VP Operations at Series B Fintech</div>
+                        <div class="candidate-tags">
+                            <span class="tag source">Referral Network</span>
+                            <span class="tag skill">Operations</span>
+                            <span class="tag skill">Fintech</span>
+                        </div>
+                        <div class="candidate-meta">
+                            <span>📍 New York</span>
+                            <span>💼 10 yrs exp</span>
+                            <span>🎓 Wharton MBA</span>
+                            <span>📅 Last contact: 5 days ago</span>
+                        </div>
+                    </div>
+                    <div class="candidate-actions">
+                        <button class="btn btn-primary action-btn">Present to Client</button>
+                        <button class="btn btn-secondary action-btn">View Profile</button>
+                    </div>
+                </div>
+
+                <div class="candidate-card">
+                    <div class="candidate-avatar">SP</div>
+                    <div class="candidate-info">
+                        <div class="candidate-name">Sarah Patel</div>
+                        <div class="candidate-title">Executive Business Partner to CTO</div>
+                        <div class="candidate-tags">
+                            <span class="tag source">Event Networking</span>
+                            <span class="tag skill">Tech</span>
+                            <span class="tag skill">Executive Support</span>
+                        </div>
+                        <div class="candidate-meta">
+                            <span>📍 Austin</span>
+                            <span>💼 6 yrs exp</span>
+                            <span>🎓 Stanford MS</span>
+                            <span>📅 Last contact: 1 week ago</span>
+                        </div>
+                    </div>
+                    <div class="candidate-actions">
+                        <button class="btn btn-primary action-btn">Present to Client</button>
+                        <button class="btn btn-secondary action-btn">View Profile</button>
+                    </div>
+                </div>
+
+                <div class="candidate-card">
+                    <div class="candidate-avatar">JC</div>
+                    <div class="candidate-info">
+                        <div class="candidate-name">James Chen</div>
+                        <div class="candidate-title">Former Investment Banker → Strategy Lead</div>
+                        <div class="candidate-tags">
+                            <span class="tag source">LinkedIn Outreach</span>
+                            <span class="tag skill">Banking</span>
+                            <span class="tag skill">Strategy</span>
+                        </div>
+                        <div class="candidate-meta">
+                            <span>📍 Boston</span>
+                            <span>💼 9 yrs exp</span>
+                            <span>🎓 MIT MBA</span>
+                            <span>📅 Last contact: 3 days ago</span>
+                        </div>
+                    </div>
+                    <div class="candidate-actions">
+                        <button class="btn btn-primary action-btn">Present to Client</button>
+                        <button class="btn btn-secondary action-btn">View Profile</button>
+                    </div>
+                </div>
+
+                <div class="candidate-card">
+                    <div class="candidate-avatar">LW</div>
+                    <div class="candidate-info">
+                        <div class="candidate-name">Lisa Wang</div>
+                        <div class="candidate-title">Director of Strategic Initiatives at Google</div>
+                        <div class="candidate-tags">
+                            <span class="tag source">CoS Roundtable</span>
+                            <span class="tag skill">Tech</span>
+                            <span class="tag skill">Product Strategy</span>
+                        </div>
+                        <div class="candidate-meta">
+                            <span>📍 Seattle</span>
+                            <span>💼 12 yrs exp</span>
+                            <span>🎓 Columbia MBA</span>
+                            <span>📅 Last contact: 4 days ago</span>
+                        </div>
+                    </div>
+                    <div class="candidate-actions">
+                        <button class="btn btn-primary action-btn">Present to Client</button>
+                        <button class="btn btn-secondary action-btn">View Profile</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Source Performance -->
+        <div class="section" style="margin-top: 2rem;">
+            <div class="section-header">
+                <h2 class="section-title">Source Performance Analysis</h2>
+                <button class="btn btn-secondary" onclick="alert('View detailed analytics')">📊 Detailed Analytics</button>
+            </div>
+
+            <div class="source-list">
+                <div class="source-item">
+                    <div class="source-info">
+                        <div class="source-name">LinkedIn Targeted Outreach</div>
+                        <div class="source-stats">92 prospects • 34% response rate • 15% qualified rate</div>
+                    </div>
+                    <div class="source-count">92</div>
+                </div>
+
+                <div class="source-item">
+                    <div class="source-info">
+                        <div class="source-name">Referral Network</div>
+                        <div class="source-stats">28 prospects • 68% response rate • 42% qualified rate</div>
+                    </div>
+                    <div class="source-count">28</div>
+                </div>
+
+                <div class="source-item">
+                    <div class="source-info">
+                        <div class="source-name">CoS Roundtable Events</div>
+                        <div class="source-stats">18 prospects • 55% response rate • 38% qualified rate</div>
+                    </div>
+                    <div class="source-count">18</div>
+                </div>
+
+                <div class="source-item">
+                    <div class="source-info">
+                        <div class="source-name">Content Marketing (Blog/LinkedIn)</div>
+                        <div class="source-stats">12 prospects • 41% response rate • 25% qualified rate</div>
+                    </div>
+                    <div class="source-count">12</div>
+                </div>
+
+                <div class="source-item">
+                    <div class="source-info">
+                        <div class="source-name">Job Board Applications</div>
+                        <div class="source-stats">8 prospects • 62% response rate • 12% qualified rate</div>
+                    </div>
+                    <div class="source-count">8</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        function showStage(stage) {
+            alert(`Showing all candidates in ${stage} stage`);
+        }
+
+        // Candidate card interactions
+        document.querySelectorAll('.candidate-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (!e.target.classList.contains('btn')) {
+                    const name = this.querySelector('.candidate-name').textContent;
+                    alert(`Opening detailed profile for ${name}`);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
